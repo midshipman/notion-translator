@@ -183,6 +183,7 @@ if (debug) {
   console.log(`Passed options: ${JSON.stringify(options, null, 2)}`);
 }
 
+
 // ------------------------
 // Main code
 
@@ -280,18 +281,33 @@ async function buildTranslatedBlocks(id, nestedDepth) {
         if (b.image.type !== "external") {
           // The image blocks with internal URLs may not work in a copied page
           // See https://github.com/seratch/notion-translator/issues/1 for more details
-          const notice = [
-            {
-              plain_text: "(The image was removed from this page)",
-              text: { content: "" },
-            },
-          ];
-          await translateText(notice, "en", to);
+          console.log('\n image url: '  + b.image.file.url);
+
+          var cloudinary = require('cloudinary').v2;
+          cloudinary.config({ 
+            cloud_name: process.env.cloudinary_cloud_name, 
+            api_key: process.env.cloudinary_api_key, 
+            api_secret: process.env.cloudinary_api_secret 
+          });
+          
+          /*
+          cloudinary.uploader.upload(b.image.file.url, 
+            { public_id: b.imageName }, 
+            function(error, result) {console.log(result.secure_url); });*/
+
+          var newUrl;
+          await cloudinary.uploader
+            .upload(b.image.file.url)
+            .then(result=>newUrl = result.secure_url);
+
+          console.log('\n \n new url: ' + newUrl);
           b = {
-            type: "paragraph",
-            paragraph: {
-              color: "default",
-              rich_text: notice,
+            type: "image",
+            image: {
+              type: "external",
+              "external": {
+                "url": newUrl
+             },
             },
           };
         }
